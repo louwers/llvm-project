@@ -9,6 +9,7 @@
 #include "ClangDocTest.h"
 #include "Generators.h"
 #include "Representation.h"
+#include "support/Utils.h"
 #include "clang/Basic/Version.h"
 #include "llvm/Support/Path.h"
 #include "llvm/Testing/Support/Error.h"
@@ -86,8 +87,16 @@ TEST(HTMLMustacheGeneratorTest, generateDocs) {
   assert(G && "Could not find HTMLMustacheGenerator");
   ClangDocContext CDCtx = getClangDocContext();
 
-  StringRef RootDir = "";
-  EXPECT_THAT_ERROR(G->generateDocs(RootDir, {}, CDCtx), Succeeded())
+  unittest::TempDir RootTestDirectory("generateDocsTest", /*Unique=*/true);
+  CDCtx.OutDirectory = RootTestDirectory.path();
+
+  // This seems wrong, but its unclear how else we would test this...
+  SmallString<128> AssetPath("../../../../../share/clang-doc");
+  llvm::sys::path::native(AssetPath);
+  getMustacheHtmlFiles(AssetPath, CDCtx);
+
+  EXPECT_THAT_ERROR(G->generateDocs(RootTestDirectory.path(), {}, CDCtx),
+                    Succeeded())
       << "Failed to generate docs.";
 }
 
